@@ -4,14 +4,10 @@ services:
   - type: web
     name: mahalaxmi-dudh-kendra
     runtime: node
-    plan: starter
+    plan: free
     buildCommand: npm ci --include=dev && npm run build
     startCommand: npm run seed && npm start
     healthCheckPath: /api/health
-    disk:
-      name: product-images
-      mountPath: /var/data/mahalaxmi
-      sizeGB: 1
     envVars:
       - key: NODE_VERSION
         value: 22
@@ -20,7 +16,9 @@ services:
       - key: VITE_API_URL
         value: /
       - key: UPLOAD_DIR
-        value: /var/data/mahalaxmi
+        value: uploads
+      - key: TRUST_PROXY_HOPS
+        value: 1
       - key: JWT_SECRET
         generateValue: true
       - key: MONGODB_URI

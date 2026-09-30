@@ -22,7 +22,8 @@ const uploadDir=path.resolve(process.env.UPLOAD_DIR||'uploads');await fs.mkdir(u
 app.use('/uploads',express.static(uploadDir,{setHeaders:res=>res.setHeader('X-Content-Type-Options','nosniff')}));
 app.use(express.json({limit:'32kb'}));app.use(cookieParser());
 app.use('/api',rateLimit({windowMs:60000,limit:120,standardHeaders:'draft-7',legacyHeaders:false}));
-app.use('/api',(req,res,next)=>{if(!['GET','HEAD','OPTIONS'].includes(req.method)&&req.headers.origin&&req.headers.origin!==process.env.APP_ORIGIN)return res.status(403).json({error:'Untrusted request origin'});next()});
+const appOrigin=(process.env.APP_ORIGIN||process.env.RENDER_EXTERNAL_URL||'').replace(/\/+$/,'');
+app.use('/api',(req,res,next)=>{if(!['GET','HEAD','OPTIONS'].includes(req.method)&&req.headers.origin&&appOrigin&&req.headers.origin!==appOrigin)return res.status(403).json({error:'Untrusted request origin'});next()});
 const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(next);
 const fail=(message,status=400)=>{const e=Error(message);e.status=status;throw e};
 const clean=(v,max=200)=>typeof v==='string'?v.trim().slice(0,max):'';

@@ -1,0 +1,15 @@
+{
+  "status": "passed",
+  "checks": [
+    "catalog render",
+    "React Router login route",
+    "admin demo entry",
+    "create SKU",
+    "receive stock increments",
+    "delete unused SKU",
+    "lab route",
+    "class update lifecycle",
+    "class unmount lifecycle"
+  ],
+  "scope": "DOM interaction tests with happy-dom, not real-browser layout or pixel verification"
+}

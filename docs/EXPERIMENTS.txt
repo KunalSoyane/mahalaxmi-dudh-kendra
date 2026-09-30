@@ -1,0 +1,36 @@
+MAHALAXMI V2 — WEB LAB EXPERIMENT MAP
+
+1. Bootstrap registration + JavaScript validation
+   src/components/AuthForm.jsx uses Bootstrap row/col-12, form-control, is-invalid and invalid-feedback. Explicit JavaScript validates name, email, password length and matching confirmation. Live registration is at /#/login. It requires VITE_API_URL=/ at build time and the running backend.
+
+2. ES6 features, arrays, events and popup boxes
+   src/components/ExperimentLab.jsx demonstrates arrow functions, anonymous functions, array.map, events, alert, confirm and prompt. Open /#/lab or Web lab in the footer. Production inventory also uses confirm before delete and prompt for stock receipt.
+
+3. Functional React, JSX, props and state
+   ProductCard receives product, image, quantity and onAdjust through props. AuthForm, InventoryManager and ExperimentLab are functional components. useState controls cart, forms, filters and edits.
+
+4. React Router, hooks and lifecycle
+   HashRouter with useNavigate/useLocation provides refresh-safe routes /#/, /#/orders, /#/admin, /#/cart, /#/login, /#/subscriptions, /#/retailers, /#/delivery and /#/lab. Back/forward navigation follows URL changes. useEffect mounts listeners/polling and cleans them up. The isolated class component in ExperimentLab demonstrates componentDidMount, componentDidUpdate and componentWillUnmount.
+
+5. MongoDB configuration, collections/documents and CRUD
+   compose.yaml configures a replica set. server/models.js defines products, users, orders and requests. Admin products support create/read/update/delete; deletion is blocked when orders reference a SKU. npm run lab:mongo demonstrates all four operations in a separate labitems collection without deleting shop records.
+
+6. Node, Express and Mongoose
+   server/index.js connects with mongoose.connect and exposes authenticated Express routes. The included integration report records an environment blocker; database execution is not claimed as passed.
+
+7. Node REPL, HTTP, filesystem, buffers, streams and event loop
+   npm run lab:repl starts a REPL with sample products. Try products.map(p => p.price), then .exit.
+   npm run lab:http starts a built-in Node HTTP server on localhost:3100. Open it in the browser; Ctrl+C stops it.
+   npm run lab:node executes Buffer encode/decode, file write/read, stream pipeline and synchronous/microtask/timer logging. Output files are placed in labs/output.
+
+8. REST API and Postman
+   Import postman/Mahalaxmi.postman_collection.json and Local.postman_environment.json into Postman. Set admin credentials, a fresh customer email and a fresh SKU. Use a TEST database with store coordinates 19.0085,72.8467 for the provided fixture requests. Run the collection in order. Never run a test collection against real customer data.
+   npm run test:integration starts a temporary MongoDB replica set and runs that same collection through Newman (Postman's CLI runner). Aggregate results, without credentials/cookies, are in docs/INTEGRATION_RESULTS.json.
+
+9. Full MERN integration using Fetch
+   src/main.jsx calls the Express API using fetch with credentials. The integration suite validates persisted products, users, orders and requests. Set VITE_API_URL=/ for real local operation; unset only for the isolated hosted demo.
+
+10. Cloud deployment and end-to-end evidence
+   render.yaml, Dockerfile and docs/CLOUD_DEPLOYMENT.txt are provided. NOT marked complete: no Render/MongoDB Atlas account credentials are available in this task, and the published Sites URL is still a frontend demo. Follow the guide and record successful full-stack cloud checks to complete this experiment.
+
+A code implementation is not the same as a submitted practical record. Capture your own screenshots, commands and outputs according to your teacher's requirements.

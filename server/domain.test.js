@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {distanceKm,validLocation,validItems,allowedTransition,deliveryFee} from './domain.js';
+test('radius rejects distant coordinates and accepts the store',()=>{const c={lat:19.0085,lng:72.8467};assert.equal(distanceKm(c,c),0);assert(distanceKm(c,{lat:19.1085,lng:72.8467})>5);assert(!validLocation({lat:NaN,lng:3}));assert(!validLocation({lat:91,lng:0}))});
+test('cart rejects duplicate, negative, fractional and empty lines',()=>{assert(!validItems([]));assert(!validItems([{id:'a',quantity:-1}]));assert(!validItems([{id:'a',quantity:1.5}]));assert(!validItems([{id:'a',quantity:1},{id:'a',quantity:1}]));assert(validItems([{id:'a',quantity:2}]))});
+test('state machine prevents reopening and double stock restoration',()=>{assert(allowedTransition('Placed','Confirmed'));assert(!allowedTransition('Placed','Delivered'));assert(!allowedTransition('Cancelled','Cancelled'));assert(!allowedTransition('Delivered','Cancelled'))});
+test('delivery fee boundary',()=>{assert.equal(deliveryFee(298),25);assert.equal(deliveryFee(299),0)});

@@ -1,0 +1,29 @@
+EXPERIMENT 10: FULL MERN CLOUD DEPLOYMENT
+
+Status: deployment configuration is included. Full MERN cloud deployment has NOT been performed. The ChatGPT-hosted review URL remains a browser-local demo.
+
+Required accounts: a Git repository host, Render, and MongoDB Atlas (or an existing MongoDB replica set). Credentials must be entered privately in the hosting dashboard, never in source files or chat.
+
+1. Upload the project source to your own private Git repository. Exclude .env, node_modules and uploads. Keep package-lock.json.
+2. Create a MongoDB Atlas database deployment and database user. Under Connect, select the driver/application connection option and copy the URI. Set the actual password and database name. Allow only the required application outbound IP ranges in Atlas Network Access.
+3. In Render, create a Node web service from that repository. The included render.yaml is an optional Blueprint. It requests a Starter service plus persistent disk; review the displayed costs before provisioning.
+4. Set build command: npm ci --include=dev && npm run build
+5. Set start command: npm run seed && npm start
+6. Configure VITE_API_URL=/ at BUILD time and NODE_ENV=production. Set MONGODB_URI, JWT_SECRET (32+ random characters), ADMIN_EMAIL, ADMIN_PASSWORD (12+ characters), STORE_LAT, STORE_LNG and APP_ORIGIN. APP_ORIGIN must exactly equal the HTTPS service origin, without a trailing slash. You can set it after Render assigns the URL and redeploy.
+7. Set health path /api/health. Render provides PORT automatically.
+8. Mount a persistent disk at /var/data/mahalaxmi and set UPLOAD_DIR to that path. Without persistent storage, uploaded product images may disappear after restarts/deployments. The included Blueprint configures this disk; it is not a free deployment configuration.
+9. Set TRUST_PROXY_HOPS only if you have confirmed the number of trusted reverse-proxy hops in your actual hosting topology. Do not enable arbitrary proxy trust.
+10. Deploy. Inspect logs for successful seed and server startup. Open /api/health and /api/products on the actual HTTPS domain.
+11. Register a customer, create a temporary test SKU as admin, receive stock, upload an image, place an eligible test order, move it through every stage, and check customer order history. Use a test database before accepting real business orders.
+12. Capture screenshots and API results from the deployed service for Experiment 10. Only mark it completed after this end-to-end exercise succeeds.
+
+The Dockerfile is an alternative for a Node/container host. Mount /app/uploads persistently (or set UPLOAD_DIR), supply the same environment settings and run npm run seed once in the container before normal use. No cloud service has been provisioned by this package.
+
+Official references checked while preparing these instructions:
+https://render.com/docs/deploy-node-express-app
+https://render.com/docs/disks
+https://render.com/docs/configure-environment-variables
+https://render.com/docs/blueprint-spec
+https://www.mongodb.com/docs/atlas/driver-connection/
+
+The shop owner must verify pricing, images, address, radius, delivery policy and fulfilment staffing before public launch.

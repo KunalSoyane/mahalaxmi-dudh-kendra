@@ -1,0 +1,43 @@
+{
+  "name": "mahalaxmi-dudh-kendra",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 4173",
+    "build": "vite build",
+    "start": "node server/index.js",
+    "seed": "node server/seed.js",
+    "test": "node --test server/domain.test.js",
+    "lab:node": "node labs/node-basics.mjs",
+    "lab:http": "node labs/http-server.mjs",
+    "lab:repl": "node labs/repl.mjs",
+    "lab:mongo": "node labs/mongodb-crud.mjs",
+    "test:integration": "node scripts/integration.mjs",
+    "test:postman": "newman run postman/Mahalaxmi.postman_collection.json -e postman/Local.postman_environment.json --reporters cli,json --reporter-json-export postman/latest-results.json",
+    "test:ui": "node scripts/ui-test.mjs"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "bootstrap": "^5.3.8",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "lucide-react": "^0.468.0",
+    "mongoose": "^8.9.5",
+    "multer": "^2.4.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.18.4"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.3.3",
+    "happy-dom": "^20.14.5",
+    "mongodb-memory-server": "^11.3.0",
+    "newman": "^6.2.2",
+    "vite": "^6.1.0"
+  }
+}

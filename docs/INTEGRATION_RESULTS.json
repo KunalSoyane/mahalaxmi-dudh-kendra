@@ -1,0 +1,7 @@
+{
+  "status": "blocked",
+  "reason": "The execution environment denied a MongoDB startup filesystem operation: open: Operation not permitted. No Postman request results are claimed.",
+  "runner": "npm run test:integration",
+  "collectionRequests": 25,
+  "scope": "Runner and collection supplied for execution on a laptop or unrestricted CI environment."
+}

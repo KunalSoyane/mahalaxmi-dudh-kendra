@@ -1,0 +1,767 @@
+{
+  "info": {
+    "name": "Mahalaxmi MERN V2 acceptance tests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin sign in",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"email\": \"{{adminEmail}}\", \"password\": \"{{adminPassword}}\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.environment.set('adminCookie', pm.response.headers.get('Set-Cookie').split(';')[0]);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create SKU",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Cookie",
+            "value": "{{adminCookie}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/admin/products",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"id\": \"{{sku}}\", \"name\": \"Lab milk\", \"detail\": \"Test pack \\u00b7 500 ml\", \"category\": \"Milk & dairy\", \"price\": 30, \"stock\": 20}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reject duplicate SKU",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Cookie",
+            "value": "{{adminCookie}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/admin/products",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"id\": \"{{sku}}\", \"name\": \"Duplicate\", \"detail\": \"500 ml\", \"category\": \"Milk & dairy\", \"price\": 30, \"stock\": 20}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Read catalogue",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Cookie",
+            "value": "{{adminCookie}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/products"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test('New SKU visible',()=>pm.expect(pm.response.json().some(p=>p.id===pm.environment.get('sku'))).to.be.true);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Update product",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Cookie",
+            "value": "{{adminCookie}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/admin/products/{{sku}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"price\": 32, \"detail\": \"Updated 500 ml\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Receive stock",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Cookie",
+            "value": "{{adminCookie}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/admin/products/{{sku}}/stock",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"quantity\": 5}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test('Stock increments to 25',()=>pm.expect(pm.response.json().stock).to.eql(25));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reject negative receipt",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Cookie",
+            "value": "{{adminCookie}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/admin/products/{{sku}}/stock",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"quantity\": -1}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create then delete unused SKU",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Cookie",
+            "value": "{{adminCookie}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/admin/products",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"id\": \"{{sku}}-delete\", \"name\": \"Delete demo\", \"detail\": \"Test\", \"category\": \"Biscuits\", \"price\": 10, \"stock\": 1}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Delete unused SKU",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Cookie",
+            "value": "{{adminCookie}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/admin/products/{{sku}}-delete"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Customer registration",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/auth/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"name\": \"Lab Customer\", \"email\": \"{{customerEmail}}\", \"password\": \"{{customerPassword}}\", \"role\": \"admin\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.environment.set('customerCookie',pm.response.headers.get('Set-Cookie').split(';')[0]);",
+              "pm.test('Cannot self-promote to admin',()=>pm.expect(pm.response.json().role).to.eql('customer'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Customer cannot change inventory",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Cookie",
+            "value": "{{customerCookie}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/admin/products/{{sku}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"price\": 1}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Inside delivery radius",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Cookie",
+            "value": "{{adminCookie}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/delivery/check",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"lat\": 19.0085, \"lng\": 72.8467}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test('Eligible',()=>pm.expect(pm.response.json().eligible).to.be.true);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Outside delivery radius",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Cookie",
+            "value": "{{adminCookie}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/delivery/check",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"lat\": 20, \"lng\": 73}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test('Ineligible',()=>pm.expect(pm.response.json().eligible).to.be.false);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Checkout uses server price",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Cookie",
+            "value": "{{customerCookie}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/orders",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"items\": [{\"id\": \"{{sku}}\", \"quantity\": 2, \"price\": 1}], \"address\": {\"name\": \"Lab Customer\", \"phone\": \"9876543210\", \"street\": \"Test address, not a real delivery\"}, \"location\": {\"lat\": 19.0085, \"lng\": 72.8467}}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "pm.environment.set('orderId',pm.response.json().id);",
+              "pm.test('Server total is 89',()=>pm.expect(pm.response.json().total).to.eql(89));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Customer order history",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Cookie",
+            "value": "{{customerCookie}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/orders"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test('Order is visible',()=>pm.expect(pm.response.json().some(o=>o.id===pm.environment.get('orderId'))).to.be.true);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reject stage skip",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Cookie",
+            "value": "{{adminCookie}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/admin/orders/{{orderId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"status\": \"Delivered\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cancel and restore stock",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Cookie",
+            "value": "{{adminCookie}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/admin/orders/{{orderId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"status\": \"Cancelled\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reject repeated cancellation",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Cookie",
+            "value": "{{adminCookie}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/admin/orders/{{orderId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"status\": \"Cancelled\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Verify restored stock",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Cookie",
+            "value": "{{adminCookie}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/products"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test('Stock restored once',()=>pm.expect(pm.response.json().find(p=>p.id===pm.environment.get('sku')).stock).to.eql(25));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Protect product order history",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Cookie",
+            "value": "{{adminCookie}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/admin/products/{{sku}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create milk request",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Cookie",
+            "value": "{{customerCookie}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/requests",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"type\": \"subscription\", \"product\": \"Lab milk\", \"quantity\": \"2\", \"schedule\": \"Every day\", \"phone\": \"9876543210\", \"address\": \"Lab address only\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Customer request list",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Cookie",
+            "value": "{{customerCookie}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/requests"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin order list",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Cookie",
+            "value": "{{adminCookie}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/admin/orders"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Unauthenticated access denied",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/admin/orders"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

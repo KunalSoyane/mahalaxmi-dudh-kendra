@@ -1,0 +1,813 @@
+MAHALAXMI DUDH KENDRA V2 — READ THIS FIRST
+
+UPGRADING FROM V1
+1. Extract the V2 ZIP into a NEW folder. Keep the old copy until V2 works.
+2. Copy your existing .env into the new project root. Do not overwrite it with the example. Do not share it.
+3. Keep the same MongoDB connection string to retain your database.
+4. If using Docker Compose, keep the existing database container running. Avoid starting a second MongoDB service on port 27017. When continuing with the original container, run database stop/start commands from its ORIGINAL project folder. Docker Compose names volumes based on the project folder; starting Compose in a differently named folder can create an empty database volume.
+5. In the NEW folder run npm.cmd ci, npm.cmd run build and npm.cmd start after stopping the old Node server with Ctrl+C.
+6. npm.cmd run seed is non-destructive, but is not needed if the database already contains your catalogue/admin.
+7. For a fresh install, follow the complete guide below.
+
+NEW ADMIN FEATURES
+Sign in as admin and open Products & stock.
+- New product: enter a unique lowercase SKU such as amul-taaza-1l, name, pack size, category, price and opening stock. Each pack size has its own SKU.
+- Upload: choose one PNG, JPEG or WebP image up to 2 MB. Live uploads are stored in UPLOAD_DIR (defaults to uploads). Keep this folder when moving the project.
+- Receive stock: enter the newly arrived quantity. If you have 20 and receive 50, enter 50; the result is 70.
+- Edit: update name, pack description, price, image or TOTAL stock. Setting total stock is different from receiving additional units.
+- Delete: confirm deletion. Products referenced in any order cannot be deleted; set their stock to zero instead.
+- Changes persist in MongoDB in live mode. Hosted demo changes remain in that browser only.
+
+NAVIGATION
+React Router uses hash routes, for example /#/admin and /#/orders. This works when refreshing the hosted demo. Use the Web lab footer link for academic examples.
+
+ADDITIONAL PRACTICAL COMMANDS (PowerShell, inside the project)
+
+npm.cmd run lab:node
+Demonstrates files, buffers, streams and the event loop.
+
+npm.cmd run lab:http
+Starts a separate basic HTTP server at http://localhost:3100. Press Ctrl+C to stop it.
+
+npm.cmd run lab:repl
+Opens the Node REPL. Try products.map(p => p.price), then type .exit.
+
+npm.cmd run lab:mongo
+With MongoDB running and .env configured, creates, reads, updates and deletes a temporary document in a separate lab collection. It does not delete shop products.
+
+npm.cmd run test:ui
+Runs nine DOM interaction checks. These are not browser screenshots or pixel-layout tests.
+
+npm.cmd run test:integration
+Downloads a temporary MongoDB binary, creates an isolated replica set and runs the Postman collection through Newman. Requires network access and permission to run MongoDB. This failed to start MongoDB in the creation environment because a filesystem operation was denied; it is NOT reported as a passing integration test.
+
+POSTMAN
+Import the two JSON files in postman/. Select the local environment, supply your TEST admin credentials, a fresh test customer email, and a unique test SKU. The fixtures assume test-store coordinates 19.0085,72.8467. Use a disposable database, not real shop data. Run the collection in order. Export results for your practical record only after it passes.
+
+EXPERIMENT 10
+Read docs/CLOUD_DEPLOYMENT.txt. Render configuration and Dockerfile are included, but full Node/MongoDB cloud deployment has NOT been performed. The published review link remains a frontend demo. Render plus an upload disk may incur charges; review the hosting plan before provisioning. Do not claim cloud end-to-end completion until you deploy and verify it.
+
+V2 VERIFICATION
+Production build and four domain tests pass. Nine DOM interaction checks pass. Real-browser visual QA was unavailable. MongoDB/Postman integration was blocked by the environment. Keep these distinctions in the academic report.
+
+------------------------------------------------------------------
+COMPLETE FIRST-TIME WINDOWS SETUP FOLLOWS
+------------------------------------------------------------------
+
+MAHALAXMI DUDH KENDRA
+COMPLETE BEGINNER SETUP AND RUNNING GUIDE
+Windows + PowerShell + VS Code
+
+Hack Cadet, follow these steps one at a time. This guide runs the complete MERN application on your Windows laptop.
+
+React displays the website.
+Express and Node.js handle accounts, orders and admin actions.
+MongoDB stores customers, products and orders.
+Docker Desktop runs MongoDB for you.
+
+Use Windows PowerShell for all commands below. You do not need to open Ubuntu or switch between Windows and Linux terminals.
+
+IMPORTANT: Run commands individually. Wait for each command to finish unless the guide specifically says to keep it running. Copy only the command itself, not surrounding explanations.
+
+======================================================================
+1. DOWNLOAD AND EXTRACT THE PROJECT
+======================================================================
+
+Download the Mahalaxmi_Dudh_Kendra_MERN.zip (updated V2 package) supplied in this conversation.
+
+Right-click the ZIP file and select Extract All.
+
+Open the extracted folders until you find the folder containing:
+
+  package.json
+  package-lock.json
+  compose.yaml
+  .env.example
+  src
+  server
+  public
+  README.md
+
+THIS is the project folder. All project commands must run inside it.
+
+You do not need separate frontend and backend terminals for this setup.
+
+======================================================================
+2. INSTALL NODE.JS
+======================================================================
+
+Official download page:
+https://nodejs.org/en/download
+
+Choose the Windows installer for an LTS version, version 22 or newer.
+Run the installer and keep the default options.
+
+Close and reopen VS Code after installation if it was already open.
+
+======================================================================
+3. INSTALL AND OPEN DOCKER DESKTOP
+======================================================================
+
+Official Windows installation guide:
+https://docs.docker.com/desktop/setup/install/windows-install/
+
+WSL 2 backend documentation:
+https://docs.docker.com/desktop/features/wsl/
+
+Install Docker Desktop for Windows. Use the WSL 2 backend when prompted.
+Follow any installer instructions about enabling Windows features or restarting your computer.
+
+After installation:
+1. Open Docker Desktop.
+2. Wait for its engine to finish starting.
+3. Leave Docker Desktop running.
+
+You do not need to install MongoDB separately. The project's compose.yaml file sets it up inside Docker.
+
+======================================================================
+4. OPEN THE PROJECT IN VS CODE
+======================================================================
+
+1. Open VS Code.
+2. Select File > Open Folder.
+3. Select the project folder containing package.json.
+4. Select Terminal > New Terminal.
+5. Choose PowerShell in the terminal dropdown if necessary.
+
+Run:
+
+Get-Location
+
+This displays the current terminal folder.
+
+Then run:
+
+Test-Path package.json
+
+Expected result:
+
+True
+
+If it says False, you opened the wrong folder. Open the folder that actually contains package.json.
+
+======================================================================
+5. VERIFY THE REQUIRED SOFTWARE
+======================================================================
+
+Run these commands individually:
+
+node --version
+
+npm.cmd --version
+
+docker --version
+
+docker compose version
+
+Each should print a version number.
+
+We use npm.cmd because it works in PowerShell without changing PowerShell's script-execution settings.
+
+If node or npm.cmd is not recognised, restart VS Code after installing Node.js.
+If docker is not recognised, finish installing Docker Desktop and restart VS Code.
+
+======================================================================
+6. INSTALL PROJECT DEPENDENCIES
+======================================================================
+
+Run:
+
+npm.cmd ci
+
+This downloads the packages the project needs. An internet connection is required during installation.
+
+Wait until the terminal returns to its normal prompt. A successful installation usually reports that packages were added. Warnings alone do not necessarily mean installation failed.
+
+======================================================================
+7. CREATE THE CONFIGURATION FILE
+======================================================================
+
+Run this ONCE:
+
+Copy-Item .env.example .env
+
+Open the newly created .env file in VS Code's file explorer.
+
+This file contains your database connection, session secret, admin credentials and store location.
+
+Do not repeat the copy command after configuring .env: it would overwrite your settings.
+
+======================================================================
+8. GENERATE A SESSION SECRET
+======================================================================
+
+Run:
+
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+
+The terminal prints a long random string. Copy the entire string.
+
+You will paste it into JWT_SECRET in the next step. This secret allows the server to verify signed login sessions. Keep it private.
+
+======================================================================
+9. FILL IN .env
+======================================================================
+
+Use the following structure, replacing EVERY placeholder:
+
+MONGODB_URI=mongodb://127.0.0.1:27017/mahalaxmi?replicaSet=rs0
+JWT_SECRET=PASTE_YOUR_GENERATED_RANDOM_STRING_HERE
+ADMIN_EMAIL=YOUR_ADMIN_EMAIL_HERE
+ADMIN_PASSWORD="CHOOSE_YOUR_OWN_STRONG_PASSWORD"
+STORE_LAT=YOUR_SHOP_LATITUDE
+STORE_LNG=YOUR_SHOP_LONGITUDE
+APP_ORIGIN=http://localhost:3000
+PORT=3000
+NODE_ENV=development
+VITE_API_URL=/
+
+WHAT EACH SETTING MEANS
+
+MONGODB_URI:
+Keep the supplied value for this local Docker setup.
+
+JWT_SECRET:
+Paste the random string generated in Step 8.
+
+ADMIN_EMAIL:
+Enter the email address you want to use for admin login. This is a login identifier; this version does not send email verification messages.
+
+ADMIN_PASSWORD:
+Choose your own password of at least 12 characters. Keep the double quotes around the value. For straightforward setup, avoid using a double-quote character inside the password.
+
+STORE_LAT and STORE_LNG:
+Enter the actual shop's latitude and longitude.
+
+To find them, locate the exact shop position in your map application and copy its coordinates. Latitude is the first number and longitude is the second.
+
+For understanding the format only:
+19.xxxxxx, 72.xxxxxx
+
+Enter only a numeric value on each line. Do not include degree symbols, commas, or directional letters in the individual values.
+
+These coordinates define the center of the 5 km delivery area. Use the actual shop location before accepting real customers.
+
+APP_ORIGIN:
+Keep http://localhost:3000 for this guide.
+
+PORT:
+Keep 3000.
+
+NODE_ENV:
+Keep development while running locally.
+
+VITE_API_URL:
+Keep /. This enables the real backend when the frontend is built.
+
+Press Ctrl + S to save .env.
+
+Do not publish or share this file. It contains private credentials.
+
+======================================================================
+10. START MONGODB
+======================================================================
+
+Make sure Docker Desktop is running.
+
+Run:
+
+docker compose up -d --wait
+
+The first run downloads MongoDB and may take several minutes.
+
+This starts the database and waits for it to become ready. It uses a replica set so order creation and stock reduction can succeed together rather than saving only half of an order.
+
+Check the status:
+
+docker compose ps
+
+The MongoDB service should be running and healthy.
+
+If this step fails, resolve the database issue before continuing.
+
+======================================================================
+11. CREATE THE PRODUCTS AND ADMIN ACCOUNT
+======================================================================
+
+Run:
+
+npm.cmd run seed
+
+This adds the sample product catalogue and creates an admin account using your .env credentials.
+
+Expected success message:
+
+Catalogue and admin initialized. Existing inventory and accounts were preserved.
+
+Remember:
+- Admin credentials are the values entered in .env before the first successful seed.
+- Customer accounts are created through the website.
+- Running seed again does not reset existing inventory or accounts.
+- Changing ADMIN_PASSWORD in .env later does not update an existing admin account's password.
+
+======================================================================
+12. BUILD THE WEBSITE
+======================================================================
+
+Run:
+
+npm.cmd run build
+
+This converts the React frontend into files that Express can serve.
+
+A successful build creates a dist folder. Wait for the command to finish.
+
+======================================================================
+13. START THE APPLICATION
+======================================================================
+
+Run:
+
+npm.cmd start
+
+Expected message:
+
+Mahalaxmi store is ready
+
+KEEP THIS TERMINAL OPEN. The server is running inside it.
+
+This command stays active instead of returning immediately to the prompt. That is normal.
+
+======================================================================
+14. OPEN AND CHECK THE WEBSITE
+======================================================================
+
+Open your browser and visit:
+
+http://localhost:3000
+
+Use that exact address throughout this setup.
+
+The frontend and backend both use this address. Do not start npm run dev for this complete setup.
+
+Check backend health:
+
+http://localhost:3000/api/health
+
+Expected response:
+
+{"ok":true}
+
+Check the product catalogue:
+
+http://localhost:3000/api/products
+
+This should display a list of products.
+
+======================================================================
+15. TEST CUSTOMER REGISTRATION
+======================================================================
+
+1. Click Login on the website.
+2. Choose Customer.
+3. Click New here? Create an account.
+4. Enter your name.
+5. Enter a customer email DIFFERENT from the admin email.
+6. Enter a password of at least 10 characters.
+7. Submit the form.
+
+You should now be signed in as a customer.
+
+If you see Enter customer demo instead of actual registration/login fields, the frontend was built in demo mode. See troubleshooting below.
+
+======================================================================
+16. TEST AN ORDER
+======================================================================
+
+While signed in as a customer:
+
+1. Add products to your bag.
+2. Open My bag.
+3. Enter your full name.
+4. Enter a 10-digit Indian mobile number.
+5. Enter a complete delivery address.
+6. Click the button to check your current location.
+7. Allow location access in the browser.
+8. If the location is eligible, place the order.
+
+Payment is CASH ON DELIVERY. No online payment is collected.
+
+Your device must actually be within 5 km of the configured shop coordinates to pass the live location check.
+
+FOR LOCAL DEVELOPMENT TESTING FROM ELSEWHERE:
+You can temporarily set STORE_LAT and STORE_LNG to your test location, save .env, restart the server, and test an order. Restore the real shop coordinates before any real customer use.
+
+The app checks coordinates. It does not automatically verify that the typed street address matches those coordinates. Store staff should verify the address before confirming an order.
+
+The radius is straight-line distance, not road distance.
+
+======================================================================
+17. TEST THE ADMIN DASHBOARD
+======================================================================
+
+Keep the customer window open and use an Incognito/InPrivate window for admin testing. This keeps the two login sessions separate.
+
+In the private window:
+
+1. Open http://localhost:3000.
+2. Click Login.
+3. Choose Admin.
+4. Enter the admin email and password configured before the first seed.
+5. Sign in.
+6. Open Admin dashboard from the account control if needed.
+
+You should see orders and inventory controls.
+
+Order stages:
+
+Placed -> Confirmed -> Preparing -> Out for delivery -> Delivered
+
+Update them in this order. The backend rejects skipped stages.
+
+Orders can be cancelled before dispatch. Cancelling restores their reserved stock.
+
+Customer and admin order lists refresh automatically approximately every 30 seconds.
+
+You can change product prices and stock through the inventory controls. These changes do not require a frontend rebuild.
+
+======================================================================
+18. TEST THE SPECIAL FEATURES
+======================================================================
+
+MILK PLANNER
+
+1. Sign in as a customer.
+2. Open Milk subscriptions.
+3. Choose milk, quantity and schedule.
+4. Enter the phone number and address.
+5. Submit the request.
+6. Check it in the admin dashboard.
+
+RETAILER ENQUIRIES
+
+1. Open For retailers.
+2. Enter the business name and phone number.
+3. Describe the required products and quantities.
+4. Submit the request.
+5. Check it in the admin dashboard.
+
+These features create requests that the store manages. They do not automatically generate recurring orders or charge customers.
+
+Customers can pause or close their requests. Admins manage their progress.
+
+======================================================================
+19. STOP THE APPLICATION SAFELY
+======================================================================
+
+In the terminal running the server, press:
+
+Ctrl + C
+
+If PowerShell asks whether to terminate the batch job, enter Y.
+
+To stop MongoDB while retaining its data, run:
+
+docker compose stop
+
+Accounts and orders remain in the Docker database volume.
+
+Do not run docker compose down -v unless you intentionally want to DELETE the database data.
+
+======================================================================
+20. START IT AGAIN TOMORROW
+======================================================================
+
+You do not need to reinstall everything.
+
+1. Open Docker Desktop and wait for it to start.
+2. Open the project folder in VS Code.
+3. Open a PowerShell terminal inside that folder.
+4. Run:
+
+docker compose up -d --wait
+
+5. Run:
+
+npm.cmd start
+
+6. Open:
+
+http://localhost:3000
+
+This is enough when code and configuration have not changed.
+
+WHEN YOU MAKE CHANGES
+
+React code or CSS changed:
+Stop the server, run npm.cmd run build, then npm.cmd start.
+
+Backend code changed:
+Stop and restart the server.
+
+Store coordinates in .env changed:
+Stop and restart the server.
+
+VITE_API_URL changed:
+Rebuild the frontend and restart the server.
+
+Prices or stock changed through admin:
+No rebuild is needed.
+
+Nothing changed; you only restarted the laptop:
+Start Docker, start MongoDB, then run npm.cmd start.
+
+======================================================================
+21. TROUBLESHOOTING
+======================================================================
+
+ERROR: Could not read package.json
+
+Your terminal is in the wrong folder. Run:
+
+Get-Location
+
+Test-Path package.json
+
+Open the correct folder before retrying.
+
+----------------------------------------------------------------------
+ERROR: npm.ps1 cannot be loaded because running scripts is disabled
+
+Use npm.cmd instead of npm, for example:
+
+npm.cmd ci
+
+You do not need to change PowerShell's execution policy for these commands.
+
+----------------------------------------------------------------------
+ERROR: Cannot connect to the Docker daemon
+
+Open Docker Desktop, wait for its engine to start, then retry:
+
+docker compose up -d --wait
+
+----------------------------------------------------------------------
+PROBLEM: MongoDB does not become healthy
+
+Run:
+
+docker compose ps
+
+Then:
+
+docker compose logs --tail 80 mongo
+
+These show database status and recent errors. Share this output for troubleshooting, but do not share .env or passwords.
+
+----------------------------------------------------------------------
+ERROR: Set MONGODB_URI and a JWT_SECRET...
+
+Check:
+- The file is named exactly .env, not .env.txt.
+- It is beside package.json.
+- MONGODB_URI is present.
+- JWT_SECRET contains the generated random string.
+- You saved the file.
+
+----------------------------------------------------------------------
+ERROR: Set the confirmed STORE_LAT and STORE_LNG
+
+Coordinates are missing or invalid. Enter numeric coordinates, save the file and restart the server.
+
+----------------------------------------------------------------------
+ERROR: ECONNREFUSED or MongoDB connection error
+
+The database may not be running. Run:
+
+docker compose up -d --wait
+
+Then retry the failed command.
+
+----------------------------------------------------------------------
+PROBLEM: Website still shows demo login buttons
+
+Confirm .env contains:
+
+VITE_API_URL=/
+
+Stop the server, then run:
+
+npm.cmd run build
+
+npm.cmd start
+
+Open port 3000, not the frontend preview on port 4173.
+
+----------------------------------------------------------------------
+ERROR: Untrusted request origin
+
+Use this exact browser address:
+
+http://localhost:3000
+
+Confirm this setting:
+
+APP_ORIGIN=http://localhost:3000
+
+Do not switch between localhost, 127.0.0.1 and your laptop's network IP during this setup.
+
+----------------------------------------------------------------------
+ERROR: EADDRINUSE or Port 3000 is already in use
+
+Check whether the project is running in another terminal. Stop that instance with Ctrl + C, then start it again.
+
+----------------------------------------------------------------------
+PROBLEM: Admin login fails
+
+Use the credentials that were in .env when npm.cmd run seed first succeeded.
+
+Editing .env afterward does not reset the stored admin password.
+
+----------------------------------------------------------------------
+PROBLEM: Location access fails
+
+Allow location permission for the website in browser settings and retry.
+
+The check uses your device's reported position, which may be less accurate on a laptop.
+
+If your actual location is outside the configured 5 km area, rejection is expected. See the local development testing instructions in Step 16.
+
+======================================================================
+22. OPTIONAL PROJECT CHECKS
+======================================================================
+
+Run from the project folder:
+
+npm.cmd test
+
+npm.cmd run build
+
+node --check server/index.js
+
+Four business-rule tests cover coordinates/distance, invalid cart quantities and duplicate items, order status transitions, and delivery-fee boundaries.
+
+These tests and the production build passed during project creation. A live MongoDB connection was not available in that environment, so real database-backed account creation, checkout and concurrent stock updates still need integration testing with your configured database.
+
+======================================================================
+23. OPTIONAL FRONTEND-ONLY DEMO
+======================================================================
+
+The hosted preview supplied in the conversation already lets you explore the demo without installing anything.
+
+For a local frontend-only demo, use a SEPARATE extracted copy of the project without a .env file or VITE_API_URL setting.
+
+Run:
+
+npm.cmd ci
+
+npm.cmd run dev
+
+Open:
+
+http://localhost:4173
+
+This mode offers explicit customer/admin demo entry buttons and a sample nearby location for testing from outside Mumbai.
+
+It does not create real server accounts, transmit real orders, collect payment or dispatch deliveries. Demo data is stored in that browser. Do not enter sensitive personal details into a shared demo.
+
+Do not confuse this preview with the complete backend setup on port 3000.
+
+======================================================================
+24. WHAT LOCAL SETUP DOES AND DOES NOT PROVIDE
+======================================================================
+
+This setup runs the full application ON YOUR LAPTOP.
+
+Customers cannot access your laptop by opening their own localhost address. Public launch requires a Node.js-capable host, MongoDB database, HTTPS and the shop's final business details.
+
+Included:
+- Customer accounts and admin access.
+- Product browsing, search, cart and repeat ordering.
+- Server-calculated order totals and stock reservation.
+- Five-kilometre delivery checks.
+- Cash-on-delivery orders.
+- Order stages and admin inventory controls.
+- Milk-plan requests and retailer enquiries.
+
+Not connected:
+- Online payment processing.
+- SMS or WhatsApp notifications.
+- Rider app or live GPS tracking.
+- Automatic recurring order generation or subscription billing.
+- Password recovery or email verification.
+- Invoicing.
+
+Before real use, confirm the exact shop location, stock, product pack sizes, selling prices, delivery staffing, opening hours, contact details and cancellation policy.
+
+Sample delivery pricing is Rs. 25, with free delivery at an order subtotal of Rs. 299 or more. Confirm this policy with the shop owner.
+
+The image sources and commercial-use notes are included in ASSET_SOURCES.md. Sample catalogue prices and product details must be checked against actual shop inventory.
+
+======================================================================
+25. QUICK COMMAND REMINDER
+======================================================================
+
+FIRST-TIME SETUP, AFTER INSTALLING NODE.JS AND DOCKER DESKTOP:
+
+npm.cmd ci
+Copy-Item .env.example .env
+
+Generate a secret and fully configure .env BEFORE continuing:
+
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+
+docker compose up -d --wait
+npm.cmd run seed
+npm.cmd run build
+npm.cmd start
+
+Open http://localhost:3000.
+
+EVERYDAY STARTUP:
+
+Open Docker Desktop first, then run:
+
+docker compose up -d --wait
+npm.cmd start
+
+STOPPING:
+
+Press Ctrl + C in the server terminal, then run:
+
+docker compose stop
+
+END OF GUIDE
+
+
+MAHALAXMI V2 — WEB LAB EXPERIMENT MAP
+
+1. Bootstrap registration + JavaScript validation
+   src/components/AuthForm.jsx uses Bootstrap row/col-12, form-control, is-invalid and invalid-feedback. Explicit JavaScript validates name, email, password length and matching confirmation. Live registration is at /#/login. It requires VITE_API_URL=/ at build time and the running backend.
+
+2. ES6 features, arrays, events and popup boxes
+   src/components/ExperimentLab.jsx demonstrates arrow functions, anonymous functions, array.map, events, alert, confirm and prompt. Open /#/lab or Web lab in the footer. Production inventory also uses confirm before delete and prompt for stock receipt.
+
+3. Functional React, JSX, props and state
+   ProductCard receives product, image, quantity and onAdjust through props. AuthForm, InventoryManager and ExperimentLab are functional components. useState controls cart, forms, filters and edits.
+
+4. React Router, hooks and lifecycle
+   HashRouter with useNavigate/useLocation provides refresh-safe routes /#/, /#/orders, /#/admin, /#/cart, /#/login, /#/subscriptions, /#/retailers, /#/delivery and /#/lab. Back/forward navigation follows URL changes. useEffect mounts listeners/polling and cleans them up. The isolated class component in ExperimentLab demonstrates componentDidMount, componentDidUpdate and componentWillUnmount.
+
+5. MongoDB configuration, collections/documents and CRUD
+   compose.yaml configures a replica set. server/models.js defines products, users, orders and requests. Admin products support create/read/update/delete; deletion is blocked when orders reference a SKU. npm run lab:mongo demonstrates all four operations in a separate labitems collection without deleting shop records.
+
+6. Node, Express and Mongoose
+   server/index.js connects with mongoose.connect and exposes authenticated Express routes. The included integration report records an environment blocker; database execution is not claimed as passed.
+
+7. Node REPL, HTTP, filesystem, buffers, streams and event loop
+   npm run lab:repl starts a REPL with sample products. Try products.map(p => p.price), then .exit.
+   npm run lab:http starts a built-in Node HTTP server on localhost:3100. Open it in the browser; Ctrl+C stops it.
+   npm run lab:node executes Buffer encode/decode, file write/read, stream pipeline and synchronous/microtask/timer logging. Output files are placed in labs/output.
+
+8. REST API and Postman
+   Import postman/Mahalaxmi.postman_collection.json and Local.postman_environment.json into Postman. Set admin credentials, a fresh customer email and a fresh SKU. Use a TEST database with store coordinates 19.0085,72.8467 for the provided fixture requests. Run the collection in order. Never run a test collection against real customer data.
+   npm run test:integration starts a temporary MongoDB replica set and runs that same collection through Newman (Postman's CLI runner). Aggregate results, without credentials/cookies, are in docs/INTEGRATION_RESULTS.json.
+
+9. Full MERN integration using Fetch
+   src/main.jsx calls the Express API using fetch with credentials. The integration suite validates persisted products, users, orders and requests. Set VITE_API_URL=/ for real local operation; unset only for the isolated hosted demo.
+
+10. Cloud deployment and end-to-end evidence
+   render.yaml, Dockerfile and docs/CLOUD_DEPLOYMENT.txt are provided. NOT marked complete: no Render/MongoDB Atlas account credentials are available in this task, and the published Sites URL is still a frontend demo. Follow the guide and record successful full-stack cloud checks to complete this experiment.
+
+A code implementation is not the same as a submitted practical record. Capture your own screenshots, commands and outputs according to your teacher's requirements.
+
+
+EXPERIMENT 10: FULL MERN CLOUD DEPLOYMENT
+
+Status: deployment configuration is included. Full MERN cloud deployment has NOT been performed. The ChatGPT-hosted review URL remains a browser-local demo.
+
+Required accounts: a Git repository host, Render, and MongoDB Atlas (or an existing MongoDB replica set). Credentials must be entered privately in the hosting dashboard, never in source files or chat.
+
+1. Upload the project source to your own private Git repository. Exclude .env, node_modules and uploads. Keep package-lock.json.
+2. Create a MongoDB Atlas database deployment and database user. Under Connect, select the driver/application connection option and copy the URI. Set the actual password and database name. Allow only the required application outbound IP ranges in Atlas Network Access.
+3. In Render, create a Node web service from that repository. The included render.yaml is an optional Blueprint. It requests a Starter service plus persistent disk; review the displayed costs before provisioning.
+4. Set build command: npm ci --include=dev && npm run build
+5. Set start command: npm run seed && npm start
+6. Configure VITE_API_URL=/ at BUILD time and NODE_ENV=production. Set MONGODB_URI, JWT_SECRET (32+ random characters), ADMIN_EMAIL, ADMIN_PASSWORD (12+ characters), STORE_LAT, STORE_LNG and APP_ORIGIN. APP_ORIGIN must exactly equal the HTTPS service origin, without a trailing slash. You can set it after Render assigns the URL and redeploy.
+7. Set health path /api/health. Render provides PORT automatically.
+8. Mount a persistent disk at /var/data/mahalaxmi and set UPLOAD_DIR to that path. Without persistent storage, uploaded product images may disappear after restarts/deployments. The included Blueprint configures this disk; it is not a free deployment configuration.
+9. Set TRUST_PROXY_HOPS only if you have confirmed the number of trusted reverse-proxy hops in your actual hosting topology. Do not enable arbitrary proxy trust.
+10. Deploy. Inspect logs for successful seed and server startup. Open /api/health and /api/products on the actual HTTPS domain.
+11. Register a customer, create a temporary test SKU as admin, receive stock, upload an image, place an eligible test order, move it through every stage, and check customer order history. Use a test database before accepting real business orders.
+12. Capture screenshots and API results from the deployed service for Experiment 10. Only mark it completed after this end-to-end exercise succeeds.
+
+The Dockerfile is an alternative for a Node/container host. Mount /app/uploads persistently (or set UPLOAD_DIR), supply the same environment settings and run npm run seed once in the container before normal use. No cloud service has been provisioned by this package.
+
+Official references checked while preparing these instructions:
+https://render.com/docs/deploy-node-express-app
+https://render.com/docs/disks
+https://render.com/docs/configure-environment-variables
+https://render.com/docs/blueprint-spec
+https://www.mongodb.com/docs/atlas/driver-connection/
+
+The shop owner must verify pricing, images, address, radius, delivery policy and fulfilment staffing before public launch.

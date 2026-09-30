@@ -1,0 +1,70 @@
+import 'dotenv/config';
+import express from 'express';
+import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import path from 'node:path';
+import fs from 'node:fs/promises';
+import multer from 'multer';
+import {randomBytes} from 'node:crypto';
+import {User,Product,Order,Request} from './models.js';
+import {distanceKm,validLocation,validItems,allowedTransition,deliveryFee} from './domain.js';
+if(!process.env.MONGODB_URI||!process.env.JWT_SECRET||process.env.JWT_SECRET.length<32)throw Error('Set MONGODB_URI and a JWT_SECRET of at least 32 characters.');
+const center={lat:Number(process.env.STORE_LAT),lng:Number(process.env.STORE_LNG)};
+if(!process.env.STORE_LAT||!process.env.STORE_LNG||!validLocation(center))throw Error('Set the confirmed STORE_LAT and STORE_LNG.');
+await mongoose.connect(process.env.MONGODB_URI);
+const app=express();if(process.env.TRUST_PROXY_HOPS)app.set('trust proxy',Number(process.env.TRUST_PROXY_HOPS));const production=process.env.NODE_ENV==='production';
+app.use(helmet({contentSecurityPolicy:{directives:{defaultSrc:["'self'"],scriptSrc:["'self'"],styleSrc:["'self'","'unsafe-inline'",'https://fonts.googleapis.com'],fontSrc:["'self'",'https://fonts.gstatic.com'],imgSrc:["'self'",'data:'],connectSrc:["'self'"]}}}));
+const uploadDir=path.resolve(process.env.UPLOAD_DIR||'uploads');await fs.mkdir(uploadDir,{recursive:true});
+app.use('/uploads',express.static(uploadDir,{setHeaders:res=>res.setHeader('X-Content-Type-Options','nosniff')}));
+app.use(express.json({limit:'32kb'}));app.use(cookieParser());
+app.use('/api',rateLimit({windowMs:60000,limit:120,standardHeaders:'draft-7',legacyHeaders:false}));
+app.use('/api',(req,res,next)=>{if(!['GET','HEAD','OPTIONS'].includes(req.method)&&req.headers.origin&&req.headers.origin!==process.env.APP_ORIGIN)return res.status(403).json({error:'Untrusted request origin'});next()});
+const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(next);
+const fail=(message,status=400)=>{const e=Error(message);e.status=status;throw e};
+const clean=(v,max=200)=>typeof v==='string'?v.trim().slice(0,max):'';
+const publicUser=u=>({id:u.id,name:u.name,email:u.email,role:u.role});
+const publicOrder=o=>({...o.toObject(),id:o.id});
+function session(res,u){res.cookie('mdk_session',jwt.sign({sub:u.id},process.env.JWT_SECRET,{expiresIn:'7d'}),{httpOnly:true,secure:production,sameSite:'strict',maxAge:604800000,path:'/'});res.json(publicUser(u))}
+const auth=wrap(async(req,res,next)=>{try{const t=jwt.verify(req.cookies.mdk_session||'',process.env.JWT_SECRET);req.user=await User.findById(t.sub);if(!req.user)fail('Please sign in',401)}catch{fail('Please sign in',401)}next()});
+const admin=(req,res,next)=>{if(req.user.role!=='admin')return res.status(403).json({error:'Admin access required'});next()};
+app.get('/api/health',(req,res)=>res.json({ok:true}));
+const authLimiter=rateLimit({windowMs:900000,limit:25,standardHeaders:'draft-7',legacyHeaders:false});
+app.post('/api/auth/register',authLimiter,wrap(async(req,res)=>{const name=clean(req.body.name,80),email=clean(req.body.email,254).toLowerCase(),password=req.body.password;if(name.length<2||!/^\S+@\S+\.\S+$/.test(email)||typeof password!=='string'||password.length<10||password.length>72)fail('Provide a name, email and a 10–72 character password');if(await User.exists({email}))fail('An account already exists for this email',409);const u=await User.create({name,email,passwordHash:await bcrypt.hash(password,12),role:'customer'});session(res,u)}));
+app.post('/api/auth/login',authLimiter,wrap(async(req,res)=>{const u=await User.findOne({email:clean(req.body.email,254).toLowerCase()});if(!u||typeof req.body.password!=='string'||!await bcrypt.compare(req.body.password,u.passwordHash))fail('Incorrect email or password',401);session(res,u)}));
+app.get('/api/auth/me',auth,(req,res)=>res.json(publicUser(req.user)));
+app.post('/api/auth/logout',(req,res)=>{res.clearCookie('mdk_session',{path:'/',httpOnly:true,secure:production,sameSite:'strict'});res.json({ok:true})});
+app.get('/api/products',wrap(async(req,res)=>res.json(await Product.find().select('-_id -__v').lean())));
+app.post('/api/delivery/check',(req,res)=>{if(!validLocation(req.body))return res.status(400).json({error:'Valid coordinates required'});const distance=distanceKm(center,req.body);res.json({distance,eligible:distance<=5})});
+app.post('/api/orders',auth,wrap(async(req,res)=>{const {items,location}=req.body;const address={name:clean(req.body.address?.name,80),phone:clean(req.body.address?.phone,10),street:clean(req.body.address?.street,500)};if(!validItems(items)||!validLocation(location))fail('Invalid cart or delivery location');if(address.name.length<2||!/[6-9][0-9]{9}$/.test(address.phone)||address.street.length<8)fail('Complete delivery details are required');const distance=distanceKm(center,location);if(distance>5)fail('Address is outside the 5 km delivery radius');const tx=await mongoose.startSession();let order;try{await tx.withTransaction(async()=>{const lines=[];for(const i of items){const p=await Product.findOneAndUpdate({id:i.id,stock:{$gte:i.quantity}},{$inc:{stock:-i.quantity}},{new:true,session:tx});if(!p)fail('An item is unavailable or has insufficient stock',409);lines.push({id:p.id,name:p.name,quantity:i.quantity,price:p.price})}const subtotal=lines.reduce((s,p)=>s+p.price*p.quantity,0),delivery=deliveryFee(subtotal);[order]=await Order.create([{number:'MDK-'+randomBytes(5).toString('hex').toUpperCase(),user:req.user.id,items:lines,subtotal,delivery,total:subtotal+delivery,address,location,distance}],{session:tx})})}finally{await tx.endSession()}res.status(201).json(publicOrder(order))}));
+app.get('/api/orders',auth,wrap(async(req,res)=>res.json((await Order.find({user:req.user.id}).sort({createdAt:-1}).limit(200)).map(publicOrder))));
+app.get('/api/admin/orders',auth,admin,wrap(async(req,res)=>res.json((await Order.find().sort({createdAt:-1}).limit(500)).map(publicOrder))));
+app.patch('/api/admin/orders/:id',auth,admin,wrap(async(req,res)=>{const tx=await mongoose.startSession();let order;try{await tx.withTransaction(async()=>{order=await Order.findById(req.params.id).session(tx);if(!order)fail('Order not found',404);if(!allowedTransition(order.status,req.body.status))fail('Invalid order status transition');if(req.body.status==='Cancelled')for(const i of order.items)await Product.updateOne({id:i.id},{$inc:{stock:i.quantity}},{session:tx});order.status=req.body.status;await order.save({session:tx})})}finally{await tx.endSession()}res.json(publicOrder(order))}));
+function productData(body,creating){
+ const fields={};
+ if(creating){if(typeof body.id!=='string'||! /^[a-z0-9][a-z0-9-]{1,63}$/.test(body.id))fail('SKU must be 2–64 lowercase letters, digits or hyphens');fields.id=body.id}
+ for(const [k,max] of [['name',100],['detail',150],['category',40],['badge',30],['image',250]])if(body[k]!==undefined)fields[k]=clean(body[k],max);
+ if((creating||'name'in fields)&&!fields.name)fail('Product name required');
+ if((creating||'detail'in fields)&&!fields.detail)fail('Pack size / description required');
+ if((creating||'category'in fields)&&!['Milk & dairy','Chips & snacks','Biscuits','Cold beverages'].includes(fields.category))fail('Invalid category');
+ if(fields.image&&!/^\/(images|uploads)\/[a-zA-Z0-9._-]+$/.test(fields.image))fail('Use an uploaded product image');
+ if(creating||body.price!==undefined){if(!Number.isFinite(body.price)||body.price<1||body.price>100000)fail('Invalid price');fields.price=Math.round(body.price*100)/100}
+ if(creating||body.stock!==undefined){if(!Number.isInteger(body.stock)||body.stock<0||body.stock>1000000)fail('Invalid stock');fields.stock=body.stock}
+ return fields;
+}
+app.post('/api/admin/products',auth,admin,wrap(async(req,res)=>{const p=await Product.create({...productData(req.body,true),color:'#edf3fb'});res.status(201).json(p)}));
+app.patch('/api/admin/products/:id',auth,admin,wrap(async(req,res)=>{const p=await Product.findOneAndUpdate({id:req.params.id},productData(req.body,false),{new:true,runValidators:true});if(!p)fail('Product not found',404);res.json(p)}));
+app.post('/api/admin/products/:id/stock',auth,admin,wrap(async(req,res)=>{const n=req.body.quantity;if(!Number.isInteger(n)||n<1||n>1000000)fail('Enter a positive whole stock quantity');const p=await Product.findOneAndUpdate({id:req.params.id,stock:{$lte:1000000-n}},{$inc:{stock:n}},{new:true});if(!p)fail('Product missing or stock limit exceeded',409);res.json(p)}));
+app.delete('/api/admin/products/:id',auth,admin,wrap(async(req,res)=>{const tx=await mongoose.startSession();try{await tx.withTransaction(async()=>{if(await Order.exists({'items.id':req.params.id}).session(tx))fail('Product has order history and cannot be deleted. Set stock to zero instead.',409);const p=await Product.findOneAndDelete({id:req.params.id},{session:tx});if(!p)fail('Product not found',404)})}finally{await tx.endSession()}res.json({ok:true})}));
+const upload=multer({storage:multer.memoryStorage(),limits:{fileSize:2*1024*1024,files:1}});
+app.post('/api/admin/uploads',auth,admin,upload.single('image'),wrap(async(req,res)=>{const b=req.file?.buffer;if(!b)fail('Choose an image');let ext;if(b.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])))ext='png';else if(b[0]===255&&b[1]===216&&b[2]===255)ext='jpg';else if(b.toString('ascii',0,4)==='RIFF'&&b.toString('ascii',8,12)==='WEBP')ext='webp';else fail('Only PNG, JPEG and WebP images are accepted');const name=randomBytes(16).toString('hex')+'.'+ext;await fs.writeFile(path.join(uploadDir,name),b,{flag:'wx'});res.status(201).json({url:'/uploads/'+name})}));
+app.post('/api/requests',auth,wrap(async(req,res)=>{const type=req.body.type;if(!['subscription','wholesale'].includes(type))fail('Invalid request type');const keys=type==='subscription'?['product','quantity','schedule','phone','address']:['business','phone','requirements'];const details=Object.fromEntries(keys.map(k=>[k,clean(req.body[k],500)]));if(keys.some(k=>!details[k])||! /^[6-9][0-9]{9}$/.test(details.phone))fail('Please complete all request fields');if(type==='subscription'&&(!Number.isInteger(Number(details.quantity))||Number(details.quantity)<1||Number(details.quantity)>20))fail('Invalid quantity');res.status(201).json(await Request.create({user:req.user.id,type,details}))}));
+app.get('/api/requests',auth,wrap(async(req,res)=>res.json(await Request.find(req.user.role==='admin'?{}:{user:req.user.id}).sort({createdAt:-1}).limit(500).lean())));
+app.patch('/api/requests/:id',auth,wrap(async(req,res)=>{const request=await Request.findById(req.params.id);if(!request)fail('Request not found',404);if(req.user.role!=='admin'&&String(request.user)!==req.user.id)fail('Access denied',403);const valid=req.user.role==='admin'?['New','Contacted','Active','Paused','Closed']:['Paused','Closed'];if(!valid.includes(req.body.status))fail('Invalid request status');request.status=req.body.status;await request.save();res.json(request)}));
+app.use('/api',(req,res)=>res.status(404).json({error:'Endpoint not found'}));
+app.use(express.static(path.resolve('dist')));app.get('*',(req,res)=>res.sendFile(path.resolve('dist/index.html')));
+app.use((err,req,res,next)=>{if(err instanceof multer.MulterError)return res.status(400).json({error:'Upload failed. Choose one image up to 2 MB.'});if(err.name==='CastError')return res.status(400).json({error:'Invalid identifier'});if(err.code===11000)return res.status(409).json({error:'Record already exists'});console.error(err.message);res.status(err.status||500).json({error:err.status?err.message:'The store could not complete this request. Please try again.'})});
+app.listen(process.env.PORT||3000,()=>console.log('Mahalaxmi store is ready'));
